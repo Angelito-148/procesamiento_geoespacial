@@ -1,8 +1,6 @@
-# archivo: docker-compose.yml
+# archivo: docker-compose.yml   (versión de la Fase 4)
 name: geo
 
-# Bloque reutilizable: la dirección de Mongo que usarán los demás servicios.
-# Dentro de la red de Docker, Mongo se llama "mongo" (el nombre del servicio).
 x-mongo-env: &mongo-env
   MONGO_URI: mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongo:27017/?authSource=admin
   MONGO_DB: geodb
@@ -25,5 +23,19 @@ services:
       retries: 10
       start_period: 20s
 
+  ingest:
+    build: ./ingest
+    image: geo/dask:latest
+    profiles: ["jobs"]          # no arranca con "up"; se ejecuta con "docker compose run"
+    env_file: [config.env]
+    environment:
+      <<: *mongo-env
+    volumes:
+      - data:/data
+    depends_on:
+      mongo:
+        condition: service_healthy
+
 volumes:
   mongo_data:
+  data:
