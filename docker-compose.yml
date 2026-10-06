@@ -1,4 +1,4 @@
-# archivo: docker-compose.yml   
+# archivo: docker-compose.yml
 name: geo
 
 x-mongo-env: &mongo-env
@@ -23,15 +23,13 @@ services:
       retries: 10
       start_period: 20s
 
-  
   dask-scheduler:
     build: ./ingest
     image: geo/dask:latest
     command: dask scheduler --dashboard-address :8787
     ports:
-      - "8787:8787"            # panel web de Dask
+      - "8787:8787"
 
-  # ...y workers que lo ejecutan (2 réplicas = 2 contenedores)
   dask-worker:
     build: ./ingest
     image: geo/dask:latest
@@ -39,11 +37,10 @@ services:
     depends_on:
       - dask-scheduler
     volumes:
-      - data:/data               # los workers leen el CSV y escriben el Parquet
+      - data:/data
     deploy:
       replicas: 2
 
-  # Trabajo de ingesta: API de Kaggle + limpieza + carga
   ingest:
     build: ./ingest
     image: geo/dask:latest
@@ -60,6 +57,30 @@ services:
       dask-scheduler:
         condition: service_started
     command: ["sh", "-c", "python download.py && python clean_load.py"]
+
+  # Spark: master que coordina...
+  spark-master:
+    build: ./spark
+    image: geo/spark:latest
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master
+    environment:
+      <<: *mongo-env
+    ports:
+      - "8081:8080"            # panel de Spark (el 8080 lo usará Jenkins)
+    volumes:
+      - data:/data
+
+  # ...y worker que ejecuta
+  spark-worker:
+    build: ./spark
+    image: geo/spark:latest
+    command: /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker spark://spark-master:7077 --cores 2 --memory 2g
+    depends_on:
+      - spark-master
+    volumes:
+      - data:/data
+    deploy:
+      replicas: 1
 
 volumes:
   mongo_data:
