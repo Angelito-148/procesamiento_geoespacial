@@ -1,6 +1,6 @@
 // archivo: Jenkinsfile
 // Pipeline CI/CD. Si cualquier prueba falla, la etapa "Desplegar" NO se ejecuta.
-// Credenciales en Jenkins (Secret text): mongo-password, kaggle-username, kaggle-key
+// Credenciales en Jenkins (Secret text): mongo-password
 pipeline {
     agent any
 
@@ -14,6 +14,8 @@ pipeline {
     parameters {
         booleanParam(name: 'RUN_INGEST', defaultValue: false,
                      description: 'Obtener el dataset con la API de Kaggle, limpiar con Dask y cargar a MongoDB (LENTO)')
+        booleanParam(name: 'FORCE_DOWNLOAD', defaultValue: false,
+                     description: 'Volver a descargar el dataset con la API de Kaggle aunque ya exista')
         booleanParam(name: 'RUN_SPARK', defaultValue: false,
                      description: 'Recalcular las agregaciones con Spark')
     }
@@ -66,11 +68,8 @@ pipeline {
         stage('Ingesta (opcional)') {
             when { expression { params.RUN_INGEST } }
             steps {
-                // Token nuevo: usa string(credentialsId: 'kaggle-api-token', variable: 'KAGGLE_API_TOKEN')
-                // y cambia "-e KAGGLE_USERNAME -e KAGGLE_KEY" por "-e KAGGLE_API_TOKEN".
-                withCredentials([string(credentialsId: 'kaggle-username', variable: 'KAGGLE_USERNAME'),
-                                 string(credentialsId: 'kaggle-key', variable: 'KAGGLE_KEY')]) {
-                    sh "${PROD} run --rm -e KAGGLE_USERNAME -e KAGGLE_KEY ingest"
+                withCredentials([string(credentialsId: 'kaggle-api-token', variable: 'KAGGLE_API_TOKEN')]) {
+                    sh "${PROD} run --rm -e KAGGLE_API_TOKEN -e FORCE_DOWNLOAD=${params.FORCE_DOWNLOAD ? '1' : '0'} ingest"
                 }
             }
         }
