@@ -1,0 +1,16 @@
+# archivo: jenkins/docker-compose.yml
+# Jenkins va APARTE del sistema: si estuviera en el mismo compose, el pipeline
+# lo recrearía a sí mismo en la mitad de un build.
+name: jenkins
+
+services:
+  jenkins:
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - jenkins_home:/var/jenkins_home              # configuración y jobs persistentes
+      - /var/run/docker.sock:/var/run/docker.sock   # acceso al Docker del computador
+
+volumes:
+  jenkins_home:
