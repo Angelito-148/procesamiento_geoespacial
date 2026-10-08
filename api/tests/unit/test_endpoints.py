@@ -30,3 +30,6 @@ def test_estadistica_inexistente_da_404(cliente):
     r = cliente.get("/api/estadisticas/no-existe")
     assert r.status_code == 404
     assert "grilla" in r.get_json()["disponibles"]
+
+def test_conteo_radio_sin_radio_da_400(cliente):
+    assert cliente.get("/api/conteo-radio?lat=40&lon=-74").status_code == 400

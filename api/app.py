@@ -122,6 +122,16 @@ def estadisticas(nombre):
         cursor = cursor.sort(orden, direccion)
     return respuesta(list(cursor.limit(limite)))
 
+RADIO_TIERRA_M = 6_378_100
+
+@app.get("/api/conteo-radio")
+def conteo_radio():
+    punto = parse_punto(request.args)
+    radio = parse_radio(request.args)
+    lon, lat = punto["coordinates"]
+    filtro = {"location": {"$geoWithin": {
+        "$centerSphere": [[lon, lat], radio / RADIO_TIERRA_M]}}}   # radio en radianes
+    return respuesta({"radio_m": radio, "total": db()[COLL].count_documents(filtro)})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
