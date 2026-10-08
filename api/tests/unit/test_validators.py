@@ -23,7 +23,7 @@ def test_punto_invalido(args):
 
 
 def test_radio_y_limite():
-    assert parse_radio({"radio": "500"}) == 501
+    assert parse_radio({"radio": "500"}) == 500
     assert parse_limite({}) == 100
     with pytest.raises(ValidationError):
         parse_radio({"radio": "0"})
